@@ -4,3 +4,8 @@
 __pycache__/
 tuner/.build/
 tuner/dist/
+*.pyc
+*.ghostty
+blackhole-preview.glsl
+claude-settings.example.json
+runtime/

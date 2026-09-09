@@ -57,6 +57,9 @@ def session_tty():
 def emit(seq):
     """Write an escape sequence straight to this session's terminal. stdout
     won't do — Claude Code captures it (statusLine) or discards it (hooks)."""
+    if os.name == "nt":
+        from windows_console import emit_console
+        return emit_console(seq)
     try:
         with open("/dev/tty", "wb") as tty:
             tty.write(seq)
@@ -79,14 +82,13 @@ def apply(level):
     Negative level -> OSC 112 resets the cursor color to the theme's own,
     which the shader reads as "no session"."""
     if level < 0.0:
-        emit(b"\033]112\007")
-        return
+        return emit(b"\033]112\007")
     fill = max(0, min(250, int(round(level * 250.0))))
     hi, lo = fill >> 4, fill & 0xF
     rgb = (CURSOR_BASE[0] | (hi ^ lo ^ 0x5),
            CURSOR_BASE[1] | hi,
            CURSOR_BASE[2] | lo)
-    emit(b"\033]12;#%02x%02x%02x\007" % rgb)
+    return emit(b"\033]12;#%02x%02x%02x\007" % rgb)
 
 
 def context_fill(data):
@@ -169,6 +171,8 @@ def status_line(data, level):
 
 
 def main():
+    if os.name == "nt" and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
